@@ -223,13 +223,8 @@ condition:
         state: "on"
 
   # Optionaler Skip-Helper: leer = ignorieren, sonst muss er 'off' sein
-  - condition: or
-    conditions:
-      - condition: template
-        value_template: "{{ v_skip == '' }}"
-      - condition: state
-        entity_id: "{{ v_skip }}"
-        state: "off"
+  - condition: template
+    value_template: "{{ v_skip == '' or is_state(v_skip,'off') }}"
 
   # Wiederholung
   - condition: template
@@ -249,40 +244,26 @@ condition:
       {% endif %}
 
   # Feiertag/Urlaub-Skip
-  - condition: or
-    conditions:
-      - condition: template
-        value_template: "{{ v_hcal == '' }}"
-      - condition: not
-        conditions:
-          - condition: state
-            entity_id: "{{ v_hcal }}"
-            state: "on"
+  - condition: template
+    value_template: "{{ v_hcal == '' or not is_state(v_hcal,'on') }}"
 
-  - condition: or
-    conditions:
-      - condition: template
-        value_template: "{{ v_vcal == '' }}"
-      - condition: not
-        conditions:
-          - condition: state
-            entity_id: "{{ v_vcal }}"
-            state: "on"
+
+  - condition: template
+    value_template: "{{ v_vcal == '' or not is_state(v_vcal,'on') }}"
+
 
 action:
   # Einmaliges Überspringen: nur wenn Helper existiert UND an ist
   - choose:
-      - conditions:
-          - condition: template
-            value_template: "{{ v_skip != '' }}"
-          - condition: state
+    - conditions:
+        - condition: template
+          value_template: "{{ v_skip != '' and is_state(v_skip,'on') }}"
+      sequence:
+        - service: input_boolean.turn_off
+          target:
             entity_id: "{{ v_skip }}"
-            state: "on"
-        sequence:
-          - service: input_boolean.turn_off
-            target:
-              entity_id: "{{ v_skip }}"
-          - stop: "Einmaliges Überspringen aktiv."
+        - stop: "Einmaliges Überspringen aktiv."
+
 
   # Pre-Alarm (Schlaue Phase)
   - choose:
