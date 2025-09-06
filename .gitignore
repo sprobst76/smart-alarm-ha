@@ -1,0 +1,12 @@
+# Python / OS
+__pycache__/
+*.py[cod]
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Media not tracked
+media/*.mp3
+media/*.wav

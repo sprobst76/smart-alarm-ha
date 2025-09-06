@@ -1,0 +1,311 @@
+# Smart Alarm Blueprint
+blueprint:
+  name: Smart Alarm (Sleep-as-Android-like)
+  description: >
+    Wiederholungen (einmalig, wöchentlich, ungerade/gerade Woche, Tag des Monats),
+    "Nächsten überspringen", Schlaue Phase (Pre-Alarm), Snooze, Failsafe,
+    optional NFC-/Tag-Scan als Weckaufgabe, Handy-Fallback mit Aktionen.
+  domain: automation
+  source_url: https://github.com/sprobst76/smart-alarm-ha/blob/main/blueprints/automation/smart_alarm/blueprint.yaml
+
+  input:
+    enabled_boolean:
+      name: Ein-/Aus (optional)
+      default: ""
+      selector: { entity: { domain: input_boolean } }
+
+    skip_next_boolean:
+      name: "Nächsten überspringen" (input_boolean)
+      description: Wenn AN, wird der nächste fällige Alarm einmalig übersprungen.
+      selector: { entity: { domain: input_boolean } }
+
+    recurrence_mode:
+      name: Wiederholung
+      selector:
+        select:
+          options:
+            - "einmalig"
+            - "wöchentlich"
+            - "ungerade_woche"
+            - "gerade_woche"
+            - "tag_des_monats"
+
+    days_of_week:
+      name: Wochentage (für "wöchentlich")
+      default: [mon,tue,wed,thu,fri]
+      selector:
+        select:
+          multiple: true
+          options: [mon, tue, wed, thu, fri, sat, sun]
+
+    day_of_month:
+      name: Tag des Monats (1–28 empfohlen)
+      default: 1
+      selector: { number: { min: 1, max: 31, step: 1 } }
+
+    time_main:
+      name: Haupt-Weckzeit
+      selector: { time: {} }
+
+    smart_window_minutes:
+      name: Schlaue Phase – Vorlauf (Minuten; 0 = aus)
+      default: 10
+      selector: { number: { min: 0, max: 60, step: 1 } }
+
+    smart_media_url:
+      name: Pre-Alarm Medien-URL (sanft)
+      default: "/media/alarm_soft.mp3"
+      selector: { text: {} }
+
+    media_player:
+      name: Media Player
+      selector: { entity: { domain: media_player } }
+
+    volume_main:
+      name: Lautstärke Hauptalarm
+      default: 0.7
+      selector: { number: { min: 0, max: 1, step: 0.05 } }
+
+    volume_pre:
+      name: Lautstärke Pre-Alarm
+      default: 0.25
+      selector: { number: { min: 0, max: 1, step: 0.05 } }
+
+    alarm_media_url:
+      name: Hauptalarm Medien-URL
+      default: "/media/alarm.mp3"
+      selector: { text: {} }
+
+    snooze_minutes:
+      name: Snooze (Min)
+      default: 7
+      selector: { number: { min: 1, max: 30, step: 1 } }
+
+    max_snoozes:
+      name: Max. Snoozes
+      default: 3
+      selector: { number: { min: 0, max: 10, step: 1 } }
+
+    failsafe_after_minutes:
+      name: Failsafe nach (Min; 0=aus)
+      default: 20
+      selector: { number: { min: 0, max: 120, step: 1 } }
+
+    holiday_calendar:
+      name: Feiertags-Kalender (optional)
+      default: ""
+      selector: { entity: { domain: calendar } }
+
+    vacation_calendar:
+      name: Urlaubskalender (optional)
+      default: ""
+      selector: { entity: { domain: calendar } }
+
+    notify_mobile_service:
+      name: Optional: notify.* Dienst (Companion App)
+      default: ""
+      selector: { text: {} }
+
+    require_tag_id:
+      name: Weckaufgabe (optional): Tag-ID, die gescannt werden muss
+      description: Leerlassen, wenn keine Aufgabe nötig ist. (HA Companion „Tag gescannt“)
+      default: ""
+      selector: { text: {} }
+
+mode: restart
+max_exceeded: silent
+
+variables:
+  v_enabled: !input enabled_boolean
+  v_skip: !input skip_next_boolean
+  v_mode: !input recurrence_mode
+  v_dows: !input days_of_week
+  v_dom: !input day_of_month
+  v_time: !input time_main
+  v_win: !input smart_window_minutes
+  v_mp: !input media_player
+  v_vmain: !input volume_main
+  v_vpre: !input volume_pre
+  v_media: !input alarm_media_url
+  v_media_pre: !input smart_media_url
+  v_snooze: !input snooze_minutes
+  v_max: !input max_snoozes
+  v_fail: !input failsafe_after_minutes
+  v_hcal: !input holiday_calendar
+  v_vcal: !input vacation_calendar
+  v_notify: !input notify_mobile_service
+  v_tag: !input require_tag_id
+
+  now_week: "{{ now().isocalendar()[1] }}"
+  now_dom: "{{ now().day }}"
+  now_dow: "{{ ['mon','tue','wed','thu','fri','sat','sun'][now().weekday()] }}"
+
+trigger:
+  - platform: time
+    at: !input time_main
+    id: t_main
+
+condition:
+  - condition: or
+    conditions:
+      - condition: template
+        value_template: "{{ v_enabled == '' }}"
+      - condition: state
+        entity_id: "{{ v_enabled }}"
+        state: "on"
+
+  - condition: template
+    value_template: "{{ is_state(v_skip, 'off') }}"
+
+  - condition: template
+    value_template: >
+      {% if v_mode == 'einmalig' %}
+        true
+      {% elif v_mode == 'wöchentlich' %}
+        {{ now_dow in v_dows }}
+      {% elif v_mode == 'ungerade_woche' %}
+        {{ (now_week | int) % 2 == 1 }}
+      {% elif v_mode == 'gerade_woche' %}
+        {{ (now_week | int) % 2 == 0 }}
+      {% elif v_mode == 'tag_des_monats' %}
+        {{ now_dom == (v_dom | int) }}
+      {% else %} false {% endif %}
+
+  - condition: or
+    conditions:
+      - condition: template
+        value_template: "{{ v_hcal == '' }}"
+      - condition: not
+        conditions: [{ condition: state, entity_id: "{{ v_hcal }}", state: "on" }]
+
+  - condition: or
+    conditions:
+      - condition: template
+        value_template: "{{ v_vcal == '' }}"
+      - condition: not
+        conditions: [{ condition: state, entity_id: "{{ v_vcal }}", state: "on" }]
+
+action:
+  - choose:
+      - conditions: "{{ is_state(v_skip, 'on') }}"
+        sequence:
+          - service: input_boolean.turn_off
+            target: { entity_id: "{{ v_skip }}" }
+          - stop: "Einmaliges Überspringen aktiv."
+
+  - choose:
+      - conditions: "{{ (v_win | int) > 0 }}"
+        sequence:
+          - service: media_player.volume_set
+            target: { entity_id: "{{ v_mp }}" }
+            data: { volume_level: "{{ v_vpre }}" }
+          - service: media_player.play_media
+            target: { entity_id: "{{ v_mp }}" }
+            data:
+              media_content_id: "{{ v_media_pre }}"
+              media_content_type: "music"
+          - delay: { minutes: "{{ v_win | int }}" }
+
+  - variables: { start_ts: "{{ now() }}", snooze_count: 0 }
+
+  - service: media_player.volume_set
+    target: { entity_id: "{{ v_mp }}" }
+    data: { volume_level: "{{ v_vmain }}" }
+
+  - repeat:
+      while: [ { condition: template, value_template: "{{ true }}" } ]
+      sequence:
+        - service: media_player.play_media
+          target: { entity_id: "{{ v_mp }}" }
+          data:
+            media_content_id: "{{ v_media }}"
+            media_content_type: "music"
+
+        - choose:
+            - conditions: "{{ v_notify | length > 0 }}"
+              sequence:
+                - service: "{{ v_notify }}"
+                  data:
+                    title: "⏰ Smart Alarm"
+                    message: >
+                      {% if v_tag|length > 0 %} Aufgabe: Tag/NFC scannen ({{ v_tag }}) zum Ausschalten.
+                      {% else %} Aufstehen? {% endif %}
+                    data:
+                      ttl: 0
+                      priority: high
+                      importance: high
+                      sticky: true
+                      persistent: true
+                      actions:
+                        - action: "SNOOZE"
+                          title: "Snooze ({{ v_snooze }} min)"
+                        - action: "DISMISS"
+                          title: "Aus"
+
+        - wait_for_trigger:
+            - platform: event
+              event_type: mobile_app_notification_action
+              event_data: { action: "SNOOZE" }
+            - platform: event
+              event_type: mobile_app_notification_action
+              event_data: { action: "DISMISS" }
+            - platform: event
+              event_type: tag_scanned
+              event_data: { tag_id: !input require_tag_id }
+          timeout: "00:01:00"
+
+        - choose:
+            - conditions: "{{ v_tag|length > 0 and wait.trigger is defined and wait.trigger.event_type == 'tag_scanned' }}"
+              sequence:
+                - stop: "Aufgabe erfüllt (Tag gescannt)."
+
+            - conditions: >
+                {{ (v_tag|length == 0) and
+                   (wait.trigger is defined) and
+                   (wait.trigger.event_type == 'mobile_app_notification_action') and
+                   (wait.trigger.event.data.action == 'DISMISS') }}
+              sequence: [ { stop: "DISMISS." } ]
+
+            - conditions: >
+                {{ (wait.trigger is defined) and
+                   (wait.trigger.event_type == 'mobile_app_notification_action') and
+                   (wait.trigger.event.data.action == 'SNOOZE') }}
+              sequence:
+                - variables: { snooze_count: "{{ snooze_count + 1 }}" }
+                - choose:
+                    - conditions: "{{ snooze_count > v_max }}"
+                      sequence: [ { stop: "Max. Snoozes erreicht." } ]
+                - delay: { minutes: "{{ v_snooze }}" }
+                - continue
+
+            - conditions: "{{ true }}"
+              sequence:
+                - choose:
+                    - conditions: >
+                        {{ (v_fail|int) > 0 and
+                           (as_timestamp(now()) - as_timestamp(start_ts)) / 60 >= (v_fail|int) }}
+                      sequence:
+                        - service: media_player.volume_set
+                          target: { entity_id: "{{ v_mp }}" }
+                          data: { volume_level: 1.0 }
+                        - service: media_player.play_media
+                          target: { entity_id: "{{ v_mp }}" }
+                          data:
+                            media_content_id: "{{ v_media }}"
+                            media_content_type: "music"
+                        - choose:
+                            - conditions: "{{ v_notify | length > 0 }}"
+                              sequence:
+                                - service: "{{ v_notify }}"
+                                  data:
+                                    title: "🚨 Failsafe"
+                                    message: "Jetzt wirklich aufstehen."
+                                    data:
+                                      ttl: 0
+                                      priority: high
+                                      importance: high
+                                      sticky: true
+                                      persistent: true
+                        - stop: "Failsafe ausgelöst."
+                - delay: "00:00:05"
+                - continue

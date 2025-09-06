@@ -1,0 +1,5 @@
+# Put this under your Home Assistant configuration (e.g. configuration.yaml)
+input_boolean:
+  smart_alarm_skip_next:
+    name: Smart Alarm – Skip Next
+    icon: mdi:alarm-snooze
