@@ -104,9 +104,11 @@ blueprint:
       selector: { entity: { domain: calendar } }
 
     notify_mobile_service:
-      name: Optional: notify.* Dienst (Companion App)
+      name: "Optional: notify Service"
+      description: "Trage hier den Namen deines notify.* Dienstes ein (z. B. notify.mobile_app_pixel)."
       default: ""
-      selector: { text: {} }
+      selector:
+        text: {}
 
     require_tag_id:
       name: Weckaufgabe (optional): Tag-ID, die gescannt werden muss
