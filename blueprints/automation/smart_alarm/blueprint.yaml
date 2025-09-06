@@ -16,7 +16,8 @@ blueprint:
 
     skip_next_boolean:
       name: "Nächsten überspringen"
-      description: "Input Boolean: Wenn AN, wird der nächste fällige Alarm einmalig übersprungen."
+      description: "Optional: Input Boolean, der den nächsten fälligen Alarm einmalig überspringt. Leer lassen, wenn nicht genutzt."
+      default: ""
       selector:
         entity:
           domain: input_boolean
@@ -159,8 +160,13 @@ condition:
         entity_id: "{{ v_enabled }}"
         state: "on"
 
-  - condition: template
-    value_template: "{{ is_state(v_skip, 'off') }}"
+  - condition: or
+    conditions:
+      - condition: template
+        value_template: "{{ v_skip == '' }}"   # kein Helper gesetzt
+      - condition: state
+        entity_id: "{{ v_skip }}"
+        state: "off"
 
   - condition: template
     value_template: >
