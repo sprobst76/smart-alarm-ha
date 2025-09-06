@@ -15,9 +15,11 @@ blueprint:
       selector: { entity: { domain: input_boolean } }
 
     skip_next_boolean:
-      name: "Nächsten überspringen" (input_boolean)
-      description: Wenn AN, wird der nächste fällige Alarm einmalig übersprungen.
-      selector: { entity: { domain: input_boolean } }
+      name: "Nächsten überspringen"
+      description: "Input Boolean: Wenn AN, wird der nächste fällige Alarm einmalig übersprungen."
+      selector:
+        entity:
+          domain: input_boolean
 
     recurrence_mode:
       name: Wiederholung
