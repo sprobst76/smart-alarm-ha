@@ -111,10 +111,11 @@ blueprint:
         text: {}
 
     require_tag_id:
-      name: Weckaufgabe (optional): Tag-ID, die gescannt werden muss
-      description: Leerlassen, wenn keine Aufgabe nötig ist. (HA Companion „Tag gescannt“)
+      name: "Weckaufgabe"
+      description: "Optional: Tag-ID, die gescannt werden muss. Leerlassen, wenn keine Aufgabe nötig ist. (HA Companion ‚Tag gescannt‘)."
       default: ""
-      selector: { text: {} }
+      selector:
+        text: {}
 
 mode: restart
 max_exceeded: silent
