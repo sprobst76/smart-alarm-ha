@@ -281,7 +281,7 @@ action:
                     - conditions: "{{ snooze_count > v_max }}"
                       sequence: [ { stop: "Max. Snoozes erreicht." } ]
                 - delay: { minutes: "{{ v_snooze }}" }
-                - continue
+                - continue: true
 
             - conditions: "{{ true }}"
               sequence:
@@ -313,4 +313,4 @@ action:
                                       persistent: true
                         - stop: "Failsafe ausgelöst."
                 - delay: "00:00:05"
-                - continue
+                - continue: true
