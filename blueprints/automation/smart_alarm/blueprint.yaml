@@ -1,22 +1,26 @@
-# Smart Alarm Blueprint
+# Smart Alarm Blueprint (Sleep-as-Android-like)
 blueprint:
   name: Smart Alarm (Sleep-as-Android-like)
   description: >
-    Wiederholungen (einmalig, wöchentlich, ungerade/gerade Woche, Tag des Monats),
-    "Nächsten überspringen", Schlaue Phase (Pre-Alarm), Snooze, Failsafe,
-    optional NFC-/Tag-Scan als Weckaufgabe, Handy-Fallback mit Aktionen.
+    Wiederholungen (einmalig, wöchentlich, gerade/ungerade Woche, Tag des Monats),
+    Optional: "Nächsten überspringen", Schlaue Phase (Pre-Alarm), Snooze mit Limit,
+    Failsafe (erzwingt lauten Alarm), Feiertag/Urlaub-Skip, optional Tag-/NFC-Aufgabe
+    und Companion-App-Push mit SNOOZE/DISMISS.
   domain: automation
   source_url: https://github.com/sprobst76/smart-alarm-ha/blob/main/blueprints/automation/smart_alarm/blueprint.yaml
 
   input:
     enabled_boolean:
-      name: Ein-/Aus (optional)
+      name: Ein-/Aus
+      description: Optionaler Schalter, um den Wecker global zu aktivieren/deaktivieren. Leer lassen, wenn nicht genutzt.
       default: ""
-      selector: { entity: { domain: input_boolean } }
+      selector:
+        entity:
+          domain: input_boolean
 
     skip_next_boolean:
-      name: "Nächsten überspringen"
-      description: "Optional: Input Boolean, der den nächsten fälligen Alarm einmalig überspringt. Leer lassen, wenn nicht genutzt."
+      name: Nächsten überspringen
+      description: Optionaler Input Boolean, der den nächsten fälligen Alarm einmalig überspringt. Leer lassen, wenn nicht genutzt.
       default: ""
       selector:
         entity:
@@ -27,96 +31,153 @@ blueprint:
       selector:
         select:
           options:
-            - "einmalig"
-            - "wöchentlich"
-            - "ungerade_woche"
-            - "gerade_woche"
-            - "tag_des_monats"
+            - einmalig
+            - wöchentlich
+            - ungerade_woche
+            - gerade_woche
+            - tag_des_monats
 
     days_of_week:
       name: Wochentage (für "wöchentlich")
-      default: [mon,tue,wed,thu,fri]
+      default:
+        - mon
+        - tue
+        - wed
+        - thu
+        - fri
       selector:
         select:
           multiple: true
-          options: [mon, tue, wed, thu, fri, sat, sun]
+          options:
+            - mon
+            - tue
+            - wed
+            - thu
+            - fri
+            - sat
+            - sun
 
     day_of_month:
-      name: Tag des Monats (1–28 empfohlen)
+      name: Tag des Monats
+      description: 1–28 empfohlen.
       default: 1
-      selector: { number: { min: 1, max: 31, step: 1 } }
+      selector:
+        number:
+          min: 1
+          max: 31
+          step: 1
 
     time_main:
       name: Haupt-Weckzeit
-      selector: { time: {} }
+      selector:
+        time: {}
 
     smart_window_minutes:
-      name: Schlaue Phase – Vorlauf (Minuten; 0 = aus)
+      name: Schlaue Phase – Vorlauf (Minuten)
+      description: 0 = Pre-Alarm aus.
       default: 10
-      selector: { number: { min: 0, max: 60, step: 1 } }
+      selector:
+        number:
+          min: 0
+          max: 60
+          step: 1
 
     smart_media_url:
-      name: Pre-Alarm Medien-URL (sanft)
+      name: Pre-Alarm Medien-URL
+      description: Z. B. /media/alarm_soft.mp3 oder http-URL.
       default: "/media/alarm_soft.mp3"
-      selector: { text: {} }
+      selector:
+        text: {}
 
     media_player:
       name: Media Player
-      selector: { entity: { domain: media_player } }
+      selector:
+        entity:
+          domain: media_player
 
     volume_main:
       name: Lautstärke Hauptalarm
       default: 0.7
-      selector: { number: { min: 0, max: 1, step: 0.05 } }
+      selector:
+        number:
+          min: 0
+          max: 1
+          step: 0.05
 
     volume_pre:
       name: Lautstärke Pre-Alarm
       default: 0.25
-      selector: { number: { min: 0, max: 1, step: 0.05 } }
+      selector:
+        number:
+          min: 0
+          max: 1
+          step: 0.05
 
     alarm_media_url:
       name: Hauptalarm Medien-URL
+      description: Z. B. /media/alarm.mp3 oder http-URL.
       default: "/media/alarm.mp3"
-      selector: { text: {} }
+      selector:
+        text: {}
 
     snooze_minutes:
-      name: Snooze (Min)
+      name: Snooze (Minuten)
       default: 7
-      selector: { number: { min: 1, max: 30, step: 1 } }
+      selector:
+        number:
+          min: 1
+          max: 30
+          step: 1
 
     max_snoozes:
       name: Max. Snoozes
       default: 3
-      selector: { number: { min: 0, max: 10, step: 1 } }
+      selector:
+        number:
+          min: 0
+          max: 10
+          step: 1
 
     failsafe_after_minutes:
-      name: Failsafe nach (Min; 0=aus)
+      name: Failsafe nach (Minuten)
+      description: 0 = Failsafe aus.
       default: 20
-      selector: { number: { min: 0, max: 120, step: 1 } }
+      selector:
+        number:
+          min: 0
+          max: 120
+          step: 1
 
     holiday_calendar:
-      name: Feiertags-Kalender (optional)
+      name: Feiertags-Kalender
+      description: Optional; wenn "on", wird nicht geweckt.
       default: ""
-      selector: { entity: { domain: calendar } }
+      selector:
+        entity:
+          domain: calendar
 
     vacation_calendar:
-      name: Urlaubskalender (optional)
+      name: Urlaubskalender
+      description: Optional; wenn "on", wird nicht geweckt.
       default: ""
-      selector: { entity: { domain: calendar } }
+      selector:
+        entity:
+          domain: calendar
 
     notify_mobile_service:
-      name: "Optional: notify Service"
-      description: "Trage hier den Namen deines notify.* Dienstes ein (z. B. notify.mobile_app_pixel)."
+      name: Optionaler Notify-Service
+      description: Name deines Companion-App-Dienstes (z. B. notify.mobile_app_pixel). Leer lassen, wenn nicht genutzt.
       default: ""
       selector:
         text: {}
 
     require_tag_id:
       name: "Weckaufgabe"
-      description: "Optional: Tag-ID, die gescannt werden muss. Leerlassen, wenn keine Aufgabe nötig ist. (HA Companion ‚Tag gescannt‘)."
+      description: "Optional: Tag-ID, die zum Beenden gescannt werden muss (Einstellungen → Tags). Leer lassen, wenn keine Aufgabe nötig ist."
       default: ""
       selector:
         text: {}
+
 
 mode: restart
 max_exceeded: silent
@@ -152,6 +213,7 @@ trigger:
     id: t_main
 
 condition:
+  # Global enable (optional)
   - condition: or
     conditions:
       - condition: template
@@ -160,14 +222,16 @@ condition:
         entity_id: "{{ v_enabled }}"
         state: "on"
 
+  # Optionaler Skip-Helper: leer = ignorieren, sonst muss er 'off' sein
   - condition: or
     conditions:
       - condition: template
-        value_template: "{{ v_skip == '' }}"   # kein Helper gesetzt
+        value_template: "{{ v_skip == '' }}"
       - condition: state
         entity_id: "{{ v_skip }}"
         state: "off"
 
+  # Wiederholung
   - condition: template
     value_template: >
       {% if v_mode == 'einmalig' %}
@@ -180,58 +244,90 @@ condition:
         {{ (now_week | int) % 2 == 0 }}
       {% elif v_mode == 'tag_des_monats' %}
         {{ now_dom == (v_dom | int) }}
-      {% else %} false {% endif %}
+      {% else %}
+        false
+      {% endif %}
 
+  # Feiertag/Urlaub-Skip
   - condition: or
     conditions:
       - condition: template
         value_template: "{{ v_hcal == '' }}"
       - condition: not
-        conditions: [{ condition: state, entity_id: "{{ v_hcal }}", state: "on" }]
+        conditions:
+          - condition: state
+            entity_id: "{{ v_hcal }}"
+            state: "on"
 
   - condition: or
     conditions:
       - condition: template
         value_template: "{{ v_vcal == '' }}"
       - condition: not
-        conditions: [{ condition: state, entity_id: "{{ v_vcal }}", state: "on" }]
+        conditions:
+          - condition: state
+            entity_id: "{{ v_vcal }}"
+            state: "on"
 
 action:
+  # Einmaliges Überspringen: nur wenn Helper existiert UND an ist
   - choose:
-      - conditions: "{{ is_state(v_skip, 'on') }}"
+      - conditions:
+          - condition: template
+            value_template: "{{ v_skip != '' }}"
+          - condition: state
+            entity_id: "{{ v_skip }}"
+            state: "on"
         sequence:
           - service: input_boolean.turn_off
-            target: { entity_id: "{{ v_skip }}" }
+            target:
+              entity_id: "{{ v_skip }}"
           - stop: "Einmaliges Überspringen aktiv."
 
+  # Pre-Alarm (Schlaue Phase)
   - choose:
       - conditions: "{{ (v_win | int) > 0 }}"
         sequence:
           - service: media_player.volume_set
-            target: { entity_id: "{{ v_mp }}" }
-            data: { volume_level: "{{ v_vpre }}" }
+            target:
+              entity_id: "{{ v_mp }}"
+            data:
+              volume_level: "{{ v_vpre }}"
           - service: media_player.play_media
-            target: { entity_id: "{{ v_mp }}" }
+            target:
+              entity_id: "{{ v_mp }}"
             data:
               media_content_id: "{{ v_media_pre }}"
-              media_content_type: "music"
-          - delay: { minutes: "{{ v_win | int }}" }
+              media_content_type: music
+          - delay:
+              minutes: "{{ v_win | int }}"
 
-  - variables: { start_ts: "{{ now() }}", snooze_count: 0 }
+  # Hauptalarm – Variablen + Grundlautstärke
+  - variables:
+      start_ts: "{{ now() }}"
+      snooze_count: 0
 
   - service: media_player.volume_set
-    target: { entity_id: "{{ v_mp }}" }
-    data: { volume_level: "{{ v_vmain }}" }
+    target:
+      entity_id: "{{ v_mp }}"
+    data:
+      volume_level: "{{ v_vmain }}"
 
+  # Schleife: Alarm → Event abwarten → auswerten → ggf. wiederholen
   - repeat:
-      while: [ { condition: template, value_template: "{{ true }}" } ]
+      while:
+        - condition: template
+          value_template: "{{ true }}"
       sequence:
+        # 1) Alarm abspielen
         - service: media_player.play_media
-          target: { entity_id: "{{ v_mp }}" }
+          target:
+            entity_id: "{{ v_mp }}"
           data:
             media_content_id: "{{ v_media }}"
-            media_content_type: "music"
+            media_content_type: music
 
+        # 2) (Optional) Push mit Aktionen
         - choose:
             - conditions: "{{ v_notify | length > 0 }}"
               sequence:
@@ -239,8 +335,11 @@ action:
                   data:
                     title: "⏰ Smart Alarm"
                     message: >
-                      {% if v_tag|length > 0 %} Aufgabe: Tag/NFC scannen ({{ v_tag }}) zum Ausschalten.
-                      {% else %} Aufstehen? {% endif %}
+                      {% if v_tag|length > 0 %}
+                        Aufgabe: Tag/NFC scannen ({{ v_tag }}) zum Ausschalten.
+                      {% else %}
+                        Aufstehen?
+                      {% endif %}
                     data:
                       ttl: 0
                       priority: high
@@ -253,42 +352,57 @@ action:
                         - action: "DISMISS"
                           title: "Aus"
 
+        # 3) Warten auf Aktion (oder Timeout)
         - wait_for_trigger:
             - platform: event
               event_type: mobile_app_notification_action
-              event_data: { action: "SNOOZE" }
+              event_data:
+                action: "SNOOZE"
             - platform: event
               event_type: mobile_app_notification_action
-              event_data: { action: "DISMISS" }
+              event_data:
+                action: "DISMISS"
             - platform: event
               event_type: tag_scanned
-              event_data: { tag_id: !input require_tag_id }
+              event_data:
+                tag_id: !input require_tag_id
           timeout: "00:01:00"
 
+        # 4) Auswertung
         - choose:
-            - conditions: "{{ v_tag|length > 0 and wait.trigger is defined and wait.trigger.event_type == 'tag_scanned' }}"
+            # 4a) Tag-Aufgabe erfüllt → STOP
+            - conditions: >
+                {{ v_tag|length > 0 and
+                   wait.trigger is defined and
+                   wait.trigger.event_type == 'tag_scanned' }}
               sequence:
                 - stop: "Aufgabe erfüllt (Tag gescannt)."
 
+            # 4b) DISMISS erlaubt (nur ohne Aufgabe) → STOP
             - conditions: >
-                {{ (v_tag|length == 0) and
-                   (wait.trigger is defined) and
-                   (wait.trigger.event_type == 'mobile_app_notification_action') and
-                   (wait.trigger.event.data.action == 'DISMISS') }}
-              sequence: [ { stop: "DISMISS." } ]
-
-            - conditions: >
-                {{ (wait.trigger is defined) and
-                   (wait.trigger.event_type == 'mobile_app_notification_action') and
-                   (wait.trigger.event.data.action == 'SNOOZE') }}
+                {{ v_tag|length == 0 and
+                   wait.trigger is defined and
+                   wait.trigger.event_type == 'mobile_app_notification_action' and
+                   wait.trigger.event.data.action == 'DISMISS' }}
               sequence:
-                - variables: { snooze_count: "{{ snooze_count + 1 }}" }
+                - stop: "DISMISS."
+
+            # 4c) SNOOZE → zählen, ggf. STOP, sonst Delay
+            - conditions: >
+                {{ wait.trigger is defined and
+                   wait.trigger.event_type == 'mobile_app_notification_action' and
+                   wait.trigger.event.data.action == 'SNOOZE' }}
+              sequence:
+                - variables:
+                    snooze_count: "{{ snooze_count + 1 }}"
                 - choose:
                     - conditions: "{{ snooze_count > v_max }}"
-                      sequence: [ { stop: "Max. Snoozes erreicht." } ]
-                - delay: { minutes: "{{ v_snooze }}" }
-                - continue: true
+                      sequence:
+                        - stop: "Max. Snoozes erreicht."
+                - delay:
+                    minutes: "{{ v_snooze }}"
 
+            # 4d) Keine Reaktion → ggf. Failsafe, sonst kurz warten
             - conditions: "{{ true }}"
               sequence:
                 - choose:
@@ -297,13 +411,16 @@ action:
                            (as_timestamp(now()) - as_timestamp(start_ts)) / 60 >= (v_fail|int) }}
                       sequence:
                         - service: media_player.volume_set
-                          target: { entity_id: "{{ v_mp }}" }
-                          data: { volume_level: 1.0 }
+                          target:
+                            entity_id: "{{ v_mp }}"
+                          data:
+                            volume_level: 1.0
                         - service: media_player.play_media
-                          target: { entity_id: "{{ v_mp }}" }
+                          target:
+                            entity_id: "{{ v_mp }}"
                           data:
                             media_content_id: "{{ v_media }}"
-                            media_content_type: "music"
+                            media_content_type: music
                         - choose:
                             - conditions: "{{ v_notify | length > 0 }}"
                               sequence:
@@ -319,4 +436,3 @@ action:
                                       persistent: true
                         - stop: "Failsafe ausgelöst."
                 - delay: "00:00:05"
-                - continue: true
